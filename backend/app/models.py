@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 from .database import Base
 
-# each client has one key and many docs
+# each client has one key
 
 class Client(Base):
     __tablename__ = "client"
@@ -11,9 +11,6 @@ class Client(Base):
 
     # one to one relationship with keys
     key = relationship("Key", back_populates="client", uselist=False)
-
-    # one to many relationship with docs
-    docs = relationship("Doc", back_populates="client")
 
 
 class Key(Base):
@@ -24,14 +21,3 @@ class Key(Base):
 
     client_id = Column(Integer, ForeignKey("client.id"), unique=True)
     client = relationship("Client", back_populates="key")
-
-
-class Doc(Base):
-    __tablename__ = "docs"
-
-    id = Column(Integer, primary_key=True, index=True)
-    title = Column(String, index=True)
-    content = Column(String, index=True)
-
-    client_id = Column(Integer, ForeignKey("client.id"))
-    client = relationship("Client", back_populates="docs")
