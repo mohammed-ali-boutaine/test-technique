@@ -130,13 +130,11 @@ async def ask_question(
         
         collection = get_collection()
         
-        
         results = collection.query(
             query_texts=[request.question],
             n_results=10,
             where={"client_id": str(client.id)}
         )
-        
         
         if not results or not results['documents'] or len(results['documents'][0]) == 0:
             return {
@@ -145,19 +143,19 @@ async def ask_question(
                 "message": "No relevant documents found"
             }
         
+        # format result
         formatted_results = []
         for i in range(len(results['documents'][0])):
             formatted_results.append({
-                "document": results['documents'][0][i],
-                "metadata": results['metadatas'][0][i],
-                "distance": results['distances'][0][i] if 'distances' in results else None
+                "content": results['documents'][0][i],
+                "source": results['metadatas'][0][i].get('file_name', 'Unknown'),
+                "relevance_score": round(1 - results['distances'][0][i], 3) if 'distances' in results and results['distances'][0][i] is not None else None
             })
         
         return {
             "question": request.question,
-            "client_id": client.id,
-            "client_name": client.name,
-            "results": formatted_results
+            "results": formatted_results,
+            "total_results": len(formatted_results)
         }
     
     except HTTPException:

@@ -163,7 +163,7 @@ function App() {
               Results for: "{queryResults.question}"
             </h2>
             <p style={{ color: '#6b7280', marginBottom: '16px', fontSize: '14px' }}>
-              Client: {queryResults.client_name} | Found {queryResults.results?.length || 0} document(s)
+              Found {queryResults.total_results || queryResults.results?.length || 0} document(s)
             </p>
             
             {queryResults.results && queryResults.results.length > 0 ? (
@@ -180,9 +180,9 @@ function App() {
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '12px' }}>
                       <h3 style={{ color: '#000000', fontSize: '16px', fontWeight: '600' }}>
-                        {result.metadata?.file_name || `Document ${index + 1}`}
+                        Source: {result.source || result.metadata?.file_name || `Document ${index + 1}`}
                       </h3>
-                      {result.distance !== null && result.distance !== undefined && (
+                      {(result.relevance_score !== null && result.relevance_score !== undefined) || (result.distance !== null && result.distance !== undefined) && (
                         <span style={{
                           backgroundColor: '#000000',
                           color: 'white',
@@ -191,7 +191,7 @@ function App() {
                           fontSize: '12px',
                           fontWeight: '500'
                         }}>
-                          Relevance: {(1 - result.distance).toFixed(2)}
+                          Score: {result.relevance_score !== undefined ? result.relevance_score : (1 - result.distance).toFixed(3)}
                         </span>
                       )}
                     </div>
@@ -202,7 +202,7 @@ function App() {
                       fontFamily: 'system-ui, -apple-system, sans-serif',
                       fontSize: '14px'
                     }}>
-                      {result.document}
+                      {result.content || result.document}
                     </p>
                   </div>
                 ))}

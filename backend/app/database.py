@@ -5,8 +5,6 @@ from sqlalchemy.orm import sessionmaker
 database_path = "sqlite:///./test.db"
 
 
-
-# connect_args={"check_same_thread": False} is required only for SQLite
 engine = create_engine(
     database_path, connect_args={"check_same_thread": False}
 )
