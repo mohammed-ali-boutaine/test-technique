@@ -1,22 +1,24 @@
 # Multi-Tenant Document Management System
 
-A simple multi-tenant document management system with API key-based authentication, built with FastAPI (backend) and React (frontend).
+A multi-tenant document management system with API key-based authentication and ChromaDB vector search, built with FastAPI (backend) and React (frontend).
 
 ## Description
 
-This application demonstrates a secure multi-tenant architecture where multiple clients can access their own documents through API key authentication. Each client is isolated and can only view their own documents, ensuring complete data separation between tenants.
+This application demonstrates a secure multi-tenant architecture where clients can query their documents using natural language questions. Each client is isolated and can only access their own documents through API key authentication, with document storage and retrieval powered by ChromaDB.
 
 ## Features
 
-- **Multi-tenant Architecture**: Complete data isolation between clients
+- **Multi-tenant Architecture**: Complete data isolation between clients using client_id
 - **API Key Authentication**: Secure access control using HTTP headers
-- **RESTful API**: Clean and simple API endpoints
+- **Vector Search with ChromaDB**: Semantic search using embeddings for intelligent document retrieval
+- **Natural Language Queries**: Ask questions in plain language and get relevant documents
+- **RESTful API**: Clean API endpoints
 - **React Frontend**: Simple and intuitive user interface
-- **Error Handling**: Comprehensive error handling for all edge cases
+- **Persistent Storage**: ChromaDB data stored in persistent folder
 
 ## Architecture
 
-### Backend (FastAPI + SQLAlchemy)
+### Backend (FastAPI + SQLAlchemy + ChromaDB)
 
 ```
 backend/
@@ -24,7 +26,9 @@ backend/
 │   ├── __init__.py
 │   ├── main.py          # FastAPI application and routes
 │   ├── models.py        # SQLAlchemy database models
-│   └── database.py      # Database configuration
+│   ├── database.py      # Database configuration
+│   └── chromadb.py      # ChromaDB configuration
+├── chroma_data/         # Persistent ChromaDB storage
 └── requirements.txt
 ```
 
@@ -32,14 +36,19 @@ backend/
 
 - `Client`: Stores client information
 - `Key`: One-to-one relationship with Client (API keys)
-- `Doc`: One-to-many relationship with Client (documents)
+
+**ChromaDB Storage:**
+
+- Documents stored with client_id metadata for multi-tenant isolation
+- Vector embeddings for semantic search
+- Persistent storage in `chroma_data/` folder
 
 **API Endpoints:**
 
 - `GET /` - Health check endpoint
-- `GET /client-docs` - Retrieve documents for authenticated client
+- `POST /ask-question` - Query documents using natural language
 
-### Frontend (React + Vite + Tailwind CSS)
+### Frontend (React + Vite)
 
 ```
 frontend/
@@ -53,55 +62,56 @@ frontend/
 **Features:**
 
 - API key input with validation
-- Document display with clean UI
-- Error handling for all backend responses
-- Loading states for better UX
-- Styled with Tailwind CSS for modern, responsive design
-- Document display with clean UI
+- Question input for natural language queries
+- Display all relevant documents with relevance scores
 - Error handling for all backend responses
 - Loading states for better UX
 
 ## How It Works
 
-1. **Authentication**: Each client has a unique API key stored in the database
-2. **Request Flow**:
-   - Client enters API key in frontend
-   - Frontend sends request to `/client-docs` with `X-API-Key` header
-   - Backend validates API key and retrieves associated client
-   - Backend filters and returns only documents belonging to that client
-3. **Data Isolation**: Server-side filtering ensures clients can never access other clients' data
+1. **Authentication**: Each client has a unique API key and client_id stored in the database
+2. **Document Storage**: Documents are loaded into ChromaDB with client_id metadata during initialization
+3. **Query Flow**:
+   - Client enters API key and question in frontend
+   - Frontend sends POST request to `/ask-question` with `X-API-Key` header
+   - Backend validates API key and retrieves client_id
+   - ChromaDB performs semantic search filtered by client_id
+   - Backend returns all relevant documents with relevance scores
+4. **Data Isolation**: ChromaDB filtering by client_id ensures clients can never access other clients' data
 
 ## Approach and Design Decisions
 
 ### Multi-tenant Architecture
 
-The application implements a strict multi-tenant architecture where data isolation is enforced at the database level. Each client has:
+The application implements a strict multi-tenant architecture where data isolation is enforced using client_id:
 
-- A unique identifier in the database
+- Each client has a unique identifier (client_id) in the database
 - A one-to-one relationship with an API key
-- A one-to-many relationship with their documents
+- Documents stored in ChromaDB with client_id metadata for filtering
 
 ### Security Approach
 
-- **API Key Authentication**: Client identity is determined by the `X-API-Key` header, never by request body parameters
+- **API Key Authentication**: Client identity is determined by the `X-API-Key` header
 - **Server-side Validation**: All authentication and authorization logic is handled on the backend
-- **Database-level Filtering**: SQLAlchemy ORM ensures queries automatically filter by client_id
-- **Error Handling**: Proper HTTP status codes (403 for unauthorized, 404 for not found, 500 for server errors)
+- **ChromaDB Filtering**: Documents filtered by client_id ensuring complete tenant isolation
+- **Error Handling**: Proper HTTP status codes (400 for bad request, 403 for unauthorized, 404 for not found, 500 for server errors)
 
 ### Technology Choices
 
-- **FastAPI**: Chosen for its modern async support, automatic API documentation, and type safety
-- **SQLAlchemy**: Provides robust ORM capabilities and relationship management
-- **SQLite**: Lightweight database suitable for demonstration purposes
-- **React + Vite**: Fast development with modern tooling and hot module replacement
-- **Tailwind CSS**: Utility-first approach for rapid UI development with minimal custom CSS
+- **FastAPI**: Modern async support, automatic API documentation, and type safety
+- **SQLAlchemy**: Robust ORM capabilities for client and API key management
+- **ChromaDB**: Vector database for semantic search with persistent storage
+- **SQLite**: Lightweight database for client/key management
+- **React + Vite**: Fast development with modern tooling
 
 ### Implementation Highlights
 
-- **Lifespan Events**: Database initialization and sample data loading on startup
+- **ChromaDB Integration**: Documents loaded during startup with client_id metadata
+- **Persistent Storage**: ChromaDB data persisted in `chroma_data/` folder
+- **Semantic Search**: Natural language queries return relevant documents with relevance scores
+- **Lifespan Events**: Database and ChromaDB initialization on startup
 - **Dependency Injection**: FastAPI's dependency system manages database sessions
-- **Error Boundaries**: Try-catch blocks ensure HTTPExceptions are properly raised
-- **Clean Separation**: Backend and frontend are completely decoupled, communicating only via HTTP
+- **Clean Separation**: Backend and frontend completely decoupled
 
 ## Quick Start
 
@@ -166,73 +176,76 @@ Frontend runs at: `http://localhost:5173`
 
 ## User Interface
 
-![Application UI](public/ui.png)
+### Client A Example
 
-The application features a clean, minimal interface with black and white color scheme. Users can enter their API key to access their documents.
+![Client A Query](public/clientA.png)
 
-## Testing
+Client A using API key `tenantA_key` to query their documents.
 
-### Visual Testing Examples
+### Client B Example
 
-The following screenshots demonstrate the different scenarios:
+![Client B Query](public/clientB.png)
 
-#### Client A - Valid Key
+Client B using API key `tenantB_key` to query their documents.
 
-![Client A Documents](public/clientA.png)
+### Invalid API Key
 
-Using API key `tenantA_key` displays Client A's documents (procedure resiliation and RC Pro A).
-
-#### Client B - Valid Key
-
-![Client B Documents](public/clientB.png)
-
-Using API key `tenantB_key` displays Client B's documents (procedure sinistre and RC Pro B).
-
-#### Invalid API Key
-
-![Invalid Key Error](public/invalid-key.png)
+![Invalid API Key](public/invalid.png)
 
 Using an invalid API key returns a 403 error with appropriate error message.
 
-### Test Credentials
+## Testing
+
+### Test Client A
 
 - API Key: `tenantA_key`
-- Documents: 2 documents related to Client A
+- Documents: 2 documents (docA1_procedure_resiliation.txt, docA2_produit_rc_pro_a.txt)
+- Example question: "What is the claims procedure?" or "What are the exclusions?"
 
 ### Test Client B
 
 - API Key: `tenantB_key`
-- Documents: 2 documents related to Client B
+- Documents: 2 documents (docB1_procedure_sinistre.txt, docB2_produit_rc_pro_b.txt)
+- Example question: "How do I report a claim?" or "What is covered?"
 
 ### Using Frontend
 
 1. Open `http://localhost:5173` in your browser
-2. Enter one of the API keys above
-3. Click "Fetch Documents" or press Enter
-4. View the documents specific to that client
+2. Enter API key (`tenantA_key` or `tenantB_key`)
+3. Type a question about the documents
+4. Click "Ask Question" or press Enter
+5. View all relevant documents with relevance scores
 
 ### Using Postman
 
-1. Create a GET request to `http://127.0.0.1:8000/client-docs`
+1. Create a POST request to `http://127.0.0.1:8000/ask-question`
 2. Add header: `X-API-Key` with value `tenantA_key` or `tenantB_key`
-3. Send request and view the response
+3. Add JSON body: `{"question": "What is the claims procedure?"}`
+4. Send request and view the response
 
 ### Using curl
 
 ```bash
 # Test Client A
-curl -H "X-API-Key: tenantA_key" http://127.0.0.1:8000/client-docs
+curl -X POST http://127.0.0.1:8000/ask-question \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: tenantA_key" \
+  -d '{"question": "What is the claims procedure?"}'
 
 # Test Client B
-curl -H "X-API-Key: tenantB_key" http://127.0.0.1:8000/client-docs
+curl -X POST http://127.0.0.1:8000/ask-question \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: tenantB_key" \
+  -d '{"question": "How do I report a claim?"}'
 ```
 
 ## Security Features
 
 - **API Key Validation**: All requests require valid API key
-- **Server-side Filtering**: Client isolation enforced at database level
-- **Error Messages**: Proper HTTP status codes (403 for unauthorized, 404 for not found)
-- **No Client ID in Request Body**: Client identification done via headers only
+- **Client ID Isolation**: Document filtering by client_id in ChromaDB
+- **Question Validation**: Empty questions are rejected with 400 status
+- **Error Messages**: Proper HTTP status codes (400, 403, 404, 500)
+- **Persistent Storage**: ChromaDB data persisted across restarts
 
 ## Project Structure
 
@@ -264,12 +277,12 @@ test-technique/
 
 - **FastAPI**: Modern Python web framework
 - **SQLAlchemy**: SQL toolkit and ORM
+- **ChromaDB**: Vector database for semantic search
 - **Uvicorn**: ASGI server
-- **SQLite**: Database
+- **SQLite**: Database for client/key management
 
 ### Frontend
 
 - **React**: UI library
 - **Vite**: Build tool
-- **Tailwind CSS**: Utility-first CSS framework
 - **Fetch API**: HTTP requests

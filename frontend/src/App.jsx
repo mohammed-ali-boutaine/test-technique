@@ -7,19 +7,29 @@ function App() {
   const [error, setError] = useState('')
   const [questionLoading, setQuestionLoading] = useState(false)
 
+  const handleApiKeyChange = (e) => {
+    setApiKey(e.target.value)
+    // Clear old results when API key changes
+    setQueryResults(null)
+    setError('')
+  }
+
   const askQuestion = async () => {
     if (!apiKey.trim()) {
       setError('Please enter an API key')
+      setQueryResults(null)
       return
     }
 
     if (!question.trim()) {
       setError('Please enter a question')
+      setQueryResults(null)
       return
     }
 
     setQuestionLoading(true)
     setError('')
+    // Clear old results before new search
     setQueryResults(null)
 
     try {
@@ -71,7 +81,7 @@ function App() {
           <input
             type="text"
             value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
+            onChange={handleApiKeyChange}
             placeholder="Enter your API key (e.g., tenantA_key)"
             style={{
               width: '100%',
