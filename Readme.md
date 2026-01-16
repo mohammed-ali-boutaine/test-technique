@@ -71,6 +71,38 @@ frontend/
    - Backend filters and returns only documents belonging to that client
 3. **Data Isolation**: Server-side filtering ensures clients can never access other clients' data
 
+## Approach and Design Decisions
+
+### Multi-tenant Architecture
+
+The application implements a strict multi-tenant architecture where data isolation is enforced at the database level. Each client has:
+
+- A unique identifier in the database
+- A one-to-one relationship with an API key
+- A one-to-many relationship with their documents
+
+### Security Approach
+
+- **API Key Authentication**: Client identity is determined by the `X-API-Key` header, never by request body parameters
+- **Server-side Validation**: All authentication and authorization logic is handled on the backend
+- **Database-level Filtering**: SQLAlchemy ORM ensures queries automatically filter by client_id
+- **Error Handling**: Proper HTTP status codes (403 for unauthorized, 404 for not found, 500 for server errors)
+
+### Technology Choices
+
+- **FastAPI**: Chosen for its modern async support, automatic API documentation, and type safety
+- **SQLAlchemy**: Provides robust ORM capabilities and relationship management
+- **SQLite**: Lightweight database suitable for demonstration purposes
+- **React + Vite**: Fast development with modern tooling and hot module replacement
+- **Tailwind CSS**: Utility-first approach for rapid UI development with minimal custom CSS
+
+### Implementation Highlights
+
+- **Lifespan Events**: Database initialization and sample data loading on startup
+- **Dependency Injection**: FastAPI's dependency system manages database sessions
+- **Error Boundaries**: Try-catch blocks ensure HTTPExceptions are properly raised
+- **Clean Separation**: Backend and frontend are completely decoupled, communicating only via HTTP
+
 ## Quick Start
 
 ### Option 1: Use PowerShell Script (Windows)
@@ -241,4 +273,3 @@ test-technique/
 - **Vite**: Build tool
 - **Tailwind CSS**: Utility-first CSS framework
 - **Fetch API**: HTTP requests
-
