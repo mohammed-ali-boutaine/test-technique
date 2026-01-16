@@ -26,3 +26,8 @@ réponse basée sur les documents de l’autre client
  réponse sans source
  invention d’information
  absence de gestion du cas “aucune réponse possible pour ce client”
+
+
+
+create a readme file
+create a ps1 file to lunch project
